@@ -253,6 +253,7 @@ dependencies = [
 name = "sudoku"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "varisat",
 ]
 
