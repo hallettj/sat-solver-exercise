@@ -46,7 +46,7 @@ impl Puzzle {
                             let lit = Lit::from(&PositionWithValue {
                                 row: (row + 1) as isize,
                                 column: (column + 1) as isize,
-                                value,
+                                value: v,
                             });
                             if v == value {
                                 lits.push(lit);
@@ -176,5 +176,34 @@ mod tests {
             input.parse::<Puzzle>().unwrap().to_string().trim(),
             leading_whitespace.replace_all(input.trim(), "")
         );
+    }
+
+    #[test]
+    fn it_produces_a_model_representing_filled_cells() {
+        let puzzle = r"
+            ┌──┬──┬──┰──┬──┬──┰──┬──┬──┐
+            │ 5│ 3│  ┃  │ 7│  ┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 6│  │  ┃ 1│ 9│ 5┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │ 9│ 8┃  │  │  ┃  │ 6│  │
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │ 8│  │  ┃  │ 6│  ┃  │  │ 3│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 4│  │  ┃ 8│  │ 3┃  │  │ 1│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 7│  │  ┃  │ 2│  ┃  │  │ 6│
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │  │ 6│  ┃  │  │  ┃ 2│ 8│  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃ 4│ 1│ 9┃  │  │ 5│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃  │ 8│  ┃  │ 7│ 9│
+            └──┴──┴──┸──┴──┴──┸──┴──┴──┘
+        "
+        .parse::<Puzzle>()
+        .unwrap();
+        let model_roundtrip = Puzzle::from_model(&puzzle.to_model());
+        assert_eq!(model_roundtrip, puzzle);
     }
 }
