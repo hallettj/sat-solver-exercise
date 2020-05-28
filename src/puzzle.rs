@@ -18,12 +18,17 @@ impl Puzzle {
             Vec::with_capacity((PUZZLE_ISIZE * PUZZLE_ISIZE).try_into().unwrap());
         for row in 1..=PUZZLE_ISIZE {
             for column in 1..=PUZZLE_ISIZE {
-                let value = (1..=PUZZLE_ISIZE).fold(None, |_, v| {
+                let value = (1..=PUZZLE_ISIZE).fold(None, |acc, v| {
+                    if acc.is_some() {
+                        return acc
+                    }
+
                     let lit = Lit::from(&PositionWithValue {
                         row,
                         column,
                         value: v,
                     });
+
                     if model.contains(&lit) {
                         Some(v)
                     } else {
