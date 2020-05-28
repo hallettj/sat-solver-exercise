@@ -35,6 +35,32 @@ impl Puzzle {
         }
         Puzzle { values }
     }
+
+    pub fn to_model(&self) -> Vec<Lit> {
+        let mut lits = Vec::new();
+        for row in 0..PUZZLE_USIZE {
+            for column in 0..PUZZLE_USIZE {
+                match self.values[row * PUZZLE_USIZE + column] {
+                    Some(value) => {
+                        for v in 1..=PUZZLE_ISIZE {
+                            let lit = Lit::from(&PositionWithValue {
+                                row: (row + 1) as isize,
+                                column: (column + 1) as isize,
+                                value,
+                            });
+                            if v == value {
+                                lits.push(lit);
+                            } else {
+                                lits.push(!lit);
+                            }
+                        }
+                    }
+                    None => {}
+                }
+            }
+        }
+        lits
+    }
 }
 
 impl fmt::Display for Puzzle {
@@ -124,7 +150,7 @@ mod tests {
 
     #[test]
     fn it_parses_and_draws_a_puzzle() {
-        let input = r#"
+        let input = r"
             ┌──┬──┬──┰──┬──┬──┰──┬──┬──┐
             │ 5│ 3│  ┃  │ 7│  ┃  │  │  │
             ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
@@ -144,7 +170,7 @@ mod tests {
             ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
             │  │  │  ┃  │ 8│  ┃  │ 7│ 9│
             └──┴──┴──┸──┴──┴──┸──┴──┴──┘
-        "#;
+        ";
         let leading_whitespace = Regex::new(r"(?m:^\s*)").unwrap();
         assert_eq!(
             input.parse::<Puzzle>().unwrap().to_string().trim(),

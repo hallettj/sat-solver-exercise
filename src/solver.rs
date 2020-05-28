@@ -1,9 +1,24 @@
 use crate::constants::PUZZLE_ISIZE;
 use crate::position::PositionWithValue;
-use varisat::solver::Solver;
+use crate::puzzle::Puzzle;
+use std::{error, fmt};
+use varisat::solver::{Solver, SolverError};
 use varisat::{CnfFormula, ExtendFormula, Lit};
 
-pub fn sudoku(solver: &mut Solver) {
+pub fn solve_puzzle(puzzle: &Puzzle) -> Result<Puzzle, PuzzleSolverError> {
+    let mut solver = Solver::new();
+    sudoku(&mut solver);
+    solver.assume(&puzzle.to_model());
+    let has_solution = solver.solve()?;
+    if !has_solution {
+        Err(PuzzleSolverError::NotSatisfiable)
+    } else {
+        let model = solver.model().ok_or(PuzzleSolverError::NoModel)?;
+        Ok(Puzzle::from_model(&model))
+    }
+}
+
+fn sudoku(solver: &mut Solver) {
     no_row_contains_duplicate_numbers(solver);
     no_column_contains_duplicate_numbers(solver);
     no_3x3_boxes_contain_duplicate_numbers(solver);
@@ -81,9 +96,39 @@ fn exactly_one(literals: &[Lit]) -> CnfFormula {
     formula
 }
 
+#[derive(Debug)]
+pub enum PuzzleSolverError {
+    SolverError(SolverError),
+    NotSatisfiable,
+    NoModel,
+}
+
+impl fmt::Display for PuzzleSolverError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PuzzleSolverError::SolverError(e) => e.fmt(f),
+            PuzzleSolverError::NotSatisfiable => write!(f, "the problem is not satisfiable"),
+            PuzzleSolverError::NoModel => write!(f, "the solver did not produce a model"),
+        }
+    }
+}
+
+impl error::Error for PuzzleSolverError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
+
+impl From<SolverError> for PuzzleSolverError {
+    fn from(error: SolverError) -> Self {
+        PuzzleSolverError::SolverError(error)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::puzzle::Puzzle;
 
     #[test]
     fn it_requires_exactly_one_true_literal() {
@@ -109,5 +154,57 @@ mod tests {
         // is not satisfiable with two true variables
         solver.assume(&[a, !b, c]);
         assert_eq!(solver.solve().unwrap(), false);
+    }
+
+    #[test]
+    fn it_solves_a_puzzle() {
+        let puzzle = r"
+            ┌──┬──┬──┰──┬──┬──┰──┬──┬──┐
+            │ 5│ 3│  ┃  │ 7│  ┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 6│  │  ┃ 1│ 9│ 5┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │ 9│ 8┃  │  │  ┃  │ 6│  │
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │ 8│  │  ┃  │ 6│  ┃  │  │ 3│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 4│  │  ┃ 8│  │ 3┃  │  │ 1│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 7│  │  ┃  │ 2│  ┃  │  │ 6│
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │  │ 6│  ┃  │  │  ┃ 2│ 8│  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃ 4│ 1│ 9┃  │  │ 5│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃  │ 8│  ┃  │ 7│ 9│
+            └──┴──┴──┸──┴──┴──┸──┴──┴──┘
+        "
+        .parse::<Puzzle>()
+        .unwrap();
+        let expected = r"
+            ┌──┬──┬──┰──┬──┬──┰──┬──┬──┐
+            │ 5│ 3│  ┃  │ 7│  ┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 6│  │  ┃ 1│ 9│ 5┃  │  │  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │ 9│ 8┃  │  │  ┃  │ 6│  │
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │ 8│  │  ┃  │ 6│  ┃  │  │ 3│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 4│  │  ┃ 8│  │ 3┃  │  │ 1│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │ 7│  │  ┃  │ 2│  ┃  │  │ 6│
+            ┝━━┿━━┿━━╋━━┿━━┿━━╋━━┿━━┿━━┥
+            │  │ 6│  ┃  │  │  ┃ 2│ 8│  │
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃ 4│ 1│ 9┃  │  │ 5│
+            ├──┼──┼──╂──┼──┼──╂──┼──┼──┤
+            │  │  │  ┃  │ 8│  ┃  │ 7│ 9│
+            └──┴──┴──┸──┴──┴──┸──┴──┴──┘
+        "
+        .parse::<Puzzle>()
+        .unwrap();
+        let solved_puzzle = solve_puzzle(&puzzle).unwrap();
+        assert_eq!(expected.to_string(), solved_puzzle.to_string());
     }
 }
