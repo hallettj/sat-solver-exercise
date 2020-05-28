@@ -55,8 +55,8 @@ fn no_3x3_boxes_contain_duplicate_numbers(solver: &mut Solver) {
                     .flat_map(move |row| {
                         (1..=3).map(move |column| {
                             Lit::from(&PositionWithValue {
-                                row: row + box_row,
-                                column: column + box_column,
+                                row: row + (box_row * 3),
+                                column: column + (box_column * 3),
                                 value,
                             })
                         })
