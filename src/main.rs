@@ -1,4 +1,5 @@
 mod constants;
+mod iterate;
 mod position;
 pub mod puzzle;
 pub mod solver;

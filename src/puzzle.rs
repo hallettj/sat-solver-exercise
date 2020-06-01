@@ -1,4 +1,5 @@
 use crate::constants::{PUZZLE_ISIZE, PUZZLE_USIZE};
+use crate::iterate;
 use crate::position::PositionWithValue;
 use regex::Regex;
 use std::convert::TryInto;
@@ -16,52 +17,48 @@ impl Puzzle {
     pub fn from_model(model: &[Lit]) -> Puzzle {
         let mut values: Vec<Option<isize>> =
             Vec::with_capacity((PUZZLE_ISIZE * PUZZLE_ISIZE).try_into().unwrap());
-        for row in 1..=PUZZLE_ISIZE {
-            for column in 1..=PUZZLE_ISIZE {
-                let value = (1..=PUZZLE_ISIZE).fold(None, |acc, v| {
-                    if acc.is_some() {
-                        return acc
-                    }
+        for (row, column) in iterate::cells() {
+            let value = iterate::values().fold(None, |acc, v| {
+                if acc.is_some() {
+                    return acc;
+                }
 
-                    let lit = Lit::from(&PositionWithValue {
-                        row,
-                        column,
-                        value: v,
-                    });
-
-                    if model.contains(&lit) {
-                        Some(v)
-                    } else {
-                        None
-                    }
+                let lit = Lit::from(&PositionWithValue {
+                    row,
+                    column,
+                    value: v,
                 });
-                values.push(value);
-            }
+
+                if model.contains(&lit) {
+                    Some(v)
+                } else {
+                    None
+                }
+            });
+            values.push(value);
         }
         Puzzle { values }
     }
 
     pub fn to_model(&self) -> Vec<Lit> {
         let mut lits = Vec::new();
-        for row in 0..PUZZLE_USIZE {
-            for column in 0..PUZZLE_USIZE {
-                match self.values[row * PUZZLE_USIZE + column] {
-                    Some(value) => {
-                        for v in 1..=PUZZLE_ISIZE {
-                            let lit = Lit::from(&PositionWithValue {
-                                row: (row + 1) as isize,
-                                column: (column + 1) as isize,
-                                value: v,
-                            });
-                            if v == value {
-                                lits.push(lit);
-                            } else {
-                                lits.push(!lit);
-                            }
+        for (row, column) in iterate::cells() {
+            match self.values[((row - 1) * PUZZLE_ISIZE + (column - 1)) as usize] {
+                Some(value) => {
+                    for v in iterate::values() {
+                        let lit = Lit::from(&PositionWithValue {
+                            row,
+                            column,
+                            value: v,
+                        });
+                        if v == value {
+                            lits.push(lit);
+                        } else {
+                            lits.push(!lit);
                         }
                     }
-                    None => {}
                 }
+                None => {}
             }
         }
         lits
