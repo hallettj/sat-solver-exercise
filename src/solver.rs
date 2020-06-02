@@ -1,6 +1,8 @@
 use crate::constants::PUZZLE_ISIZE;
+use crate::iterate;
 use crate::position::PositionWithValue;
 use crate::puzzle::Puzzle;
+use num_integer::Roots;
 use std::{error, fmt};
 use varisat::solver::{Solver, SolverError};
 use varisat::{CnfFormula, ExtendFormula, Lit};
@@ -26,37 +28,34 @@ fn sudoku(solver: &mut Solver) {
 }
 
 fn no_row_contains_duplicate_numbers(solver: &mut Solver) {
-    for row in 1..=PUZZLE_ISIZE {
-        for value in 1..=PUZZLE_ISIZE {
-            let literals: Vec<_> = (1..=PUZZLE_ISIZE)
-                .map(|column| Lit::from(&PositionWithValue { row, column, value }))
-                .collect();
-            solver.add_formula(&exactly_one(&literals))
-        }
+    for (row, value) in iterate::over_2_dimensions() {
+        let literals: Vec<_> = (1..=PUZZLE_ISIZE)
+            .map(|column| Lit::from(&PositionWithValue { row, column, value }))
+            .collect();
+        solver.add_formula(&exactly_one(&literals))
     }
 }
 
 fn no_column_contains_duplicate_numbers(solver: &mut Solver) {
-    for column in 1..=PUZZLE_ISIZE {
-        for value in 1..=PUZZLE_ISIZE {
-            let literals: Vec<_> = (1..=PUZZLE_ISIZE)
-                .map(|row| Lit::from(&PositionWithValue { row, column, value }))
-                .collect();
-            solver.add_formula(&exactly_one(&literals))
-        }
+    for (column, value) in iterate::over_2_dimensions() {
+        let literals: Vec<_> = iterate::values()
+            .map(|row| Lit::from(&PositionWithValue { row, column, value }))
+            .collect();
+        solver.add_formula(&exactly_one(&literals))
     }
 }
 
 fn no_3x3_boxes_contain_duplicate_numbers(solver: &mut Solver) {
-    for box_row in 0..3 {
-        for box_column in 0..3 {
-            for value in 1..=PUZZLE_ISIZE {
-                let literals: Vec<_> = (1..=3)
+    let box_size = PUZZLE_ISIZE.sqrt();
+    for box_row in 0..box_size {
+        for box_column in 0..box_size {
+            for value in iterate::values() {
+                let literals: Vec<_> = (1..=box_size)
                     .flat_map(move |row| {
-                        (1..=3).map(move |column| {
+                        (1..=box_size).map(move |column| {
                             Lit::from(&PositionWithValue {
-                                row: row + (box_row * 3),
-                                column: column + (box_column * 3),
+                                row: row + (box_row * box_size),
+                                column: column + (box_column * box_size),
                                 value,
                             })
                         })
@@ -69,13 +68,11 @@ fn no_3x3_boxes_contain_duplicate_numbers(solver: &mut Solver) {
 }
 
 fn each_position_contains_exactly_one_number(solver: &mut Solver) {
-    for row in 1..=PUZZLE_ISIZE {
-        for column in 1..=PUZZLE_ISIZE {
-            let literals: Vec<_> = (1..=PUZZLE_ISIZE)
-                .map(|value| Lit::from(&PositionWithValue { row, column, value }))
-                .collect();
-            solver.add_formula(&exactly_one(&literals));
-        }
+    for (row, column) in iterate::over_2_dimensions() {
+        let literals: Vec<_> = (1..=PUZZLE_ISIZE)
+            .map(|value| Lit::from(&PositionWithValue { row, column, value }))
+            .collect();
+        solver.add_formula(&exactly_one(&literals));
     }
 }
 

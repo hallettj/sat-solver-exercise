@@ -17,7 +17,7 @@ impl Puzzle {
     pub fn from_model(model: &[Lit]) -> Puzzle {
         let mut values: Vec<Option<isize>> =
             Vec::with_capacity((PUZZLE_ISIZE * PUZZLE_ISIZE).try_into().unwrap());
-        for (row, column) in iterate::cells() {
+        for (row, column) in iterate::over_2_dimensions() {
             let value = iterate::values().fold(None, |acc, v| {
                 if acc.is_some() {
                     return acc;
@@ -42,7 +42,7 @@ impl Puzzle {
 
     pub fn to_model(&self) -> Vec<Lit> {
         let mut lits = Vec::new();
-        for (row, column) in iterate::cells() {
+        for (row, column) in iterate::over_2_dimensions() {
             match self.values[((row - 1) * PUZZLE_ISIZE + (column - 1)) as usize] {
                 Some(value) => {
                     for v in iterate::values() {
